@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -119,4 +120,220 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: #282828;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar-inner {
+  height: 100%;
+  background: linear-gradient(to right, #34D399, #A3E635);
+  transition: width 0.3s ease-in-out;
+}
+
+.header-container {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.input-container {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.banner-container {
+  width: 100%;
+  height: 160px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.banner-image {
+  object-fit: cover;
+  object-position: center;
+}
+
+.profile-pic-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.profile-pic {
+  width: 80px;
+  height: 80px;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.profile-pic:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(52, 211, 153, 0.4);
+}
+
+.results-frame {
+  background: #282828;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 255, 51, 0.48);
+}
+
+.section-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: background 0.3s ease;
+}
+
+.section-item:hover {
+  background: #333333;
+}
+
+.section-item span.emoji {
+  font-size: 1.1rem;
+  min-width: 24px;
+  text-align: center;
+}
+
+.section-item span.label {
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 0.95rem;
+  min-width: 200px;
+}
+
+.section-item span.value {
+  color: #34d399;
+  font-size: 0.95rem;
+  flex: 1;
+}
+
+.section-item span.secondary-value {
+  color: #aaaaaa;
+  font-size: 0.9rem;
+}
+
+.section-item span.warning {
+  color: #fbbf24;
+}
+
+.section-item span.disabled {
+  color: #f87171;
+}
+
+.section-item div.sub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-left: 2rem;
+  flex: 1;
+}
+
+.section-item div.sub-list span {
+  color: #aaaaaa;
+  font-size: 0.9rem;
+}
+
+.input-field {
+  background: #333333;
+  border: 1px solid #444444;
+  color: #ffffff;
+  font-size: 1rem;
+  border-radius: 8px;
+  padding: 0.5rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.input-field::placeholder {
+  color: #aaaaaa;
+}
+
+.action-button {
+  background: linear-gradient(to right, #34d399, #a3e635);
+  color: #1f2937;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.action-button:hover {
+  background: linear-gradient(to right, #10b981, #84cc16);
+  transform: translateY(-2px);
+}
+
+.copy-button {
+  background: #34d399;
+  color: #1f2937;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  margin-left: 0.5rem;
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.copy-button:hover {
+  background: #10b981;
+  transform: scale(1.05);
+}
+
+.monetization-status {
+  background: linear-gradient(to right, #34d399, #a3e635);
+  padding: 0.8rem;
+  border-radius: 8px;
+  color: #1f2937;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  box-shadow: 0 8px 24px rgba(52, 211, 153, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  transition: box-shadow 0.3s ease;
+}
+
+.monetization-status:hover {
+  box-shadow: 0 10px 28px rgba(52, 211, 153, 0.5), 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.monetization-status .label {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.monetization-status .value {
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.error-message {
+  color: #f87171;
+  font-size: 0.875rem;
+  text-align: center;
+  margin-top: 0.5rem;
 }
