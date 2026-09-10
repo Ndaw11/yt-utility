@@ -1,13 +1,14 @@
-// app/page.jsx
+// app/page.tsx (ou app/page.jsx)
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
+// Initialisation propre du QueryClient en dehors du composant principal
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -37,16 +38,19 @@ function HomeContent() {
     queryKey: ["channel", channelInput],
     queryFn: async () => {
       if (!channelInput.trim()) return null;
-      const url = `http://localhost:8080/api/channel-info/${encodeURIComponent(channelInput)}`;
+      const url = `http://localhost:8080/api/channel-info/${encodeURIComponent(channelInput.trim())}`;
       console.log("Envoi de la requête vers :", url);
+      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
+      
       try {
         const res = await fetch(url, { signal: controller.signal });
         clearTimeout(timeoutId);
         console.log("Statut HTTP :", res.status);
+        
         if (!res.ok) {
-          const errorDetail = await res.json();
+          const errorDetail = await res.json().catch(() => ({}));
           if (res.status === 404) {
             throw new Error("🚫 Chaîne non trouvée. Vérifiez l'URL ou le handle.");
           } else if (res.status === 503) {
@@ -56,12 +60,15 @@ function HomeContent() {
           }
           throw new Error(errorDetail.detail || "Erreur inconnue.");
         }
+        
         const json = await res.json();
         console.log("Réponse JSON :", json);
         return json;
-      } catch (err) {
+      } catch (err: any) {
         clearTimeout(timeoutId);
-        throw err.name === "AbortError" ? new Error("⏳ Requête trop longue, essayez encore !") : err;
+        throw err.name === "AbortError" 
+          ? new Error("⏳ Requête trop longue, essayez encore !") 
+          : err;
       }
     },
     enabled: false,
@@ -79,16 +86,24 @@ function HomeContent() {
     }
   }, [isLoading]);
 
-  const validateInput = (input) => {
+  const validateInput = (input: string): string => {
+    const trimmedInput = input.trim();
     const channelUrlPattern = /^(https?:\/\/(www\.)?youtube\.com\/(channel\/[a-zA-Z0-9_-]+|@([a-zA-Z0-9_-]+)))$/;
     const channelIdPattern = /^UC[a-zA-Z0-9_-]{22}$/;
     const handlePattern = /^@[a-zA-Z0-9_-]+$/;
     const searchUrlPattern = /youtube\.com\/results\?search_query=/;
 
-    if (searchUrlPattern.test(input)) {
+    if (!trimmedInput) {
+      return "🚫 Veuillez entrer une URL ou un handle valide.";
+    }
+    if (searchUrlPattern.test(trimmedInput)) {
       return "🚫 Veuillez entrer une URL de chaîne ou un handle (ex. @TMZ).";
     }
-    if (channelUrlPattern.test(input) || channelIdPattern.test(input) || handlePattern.test(input)) {
+    if (
+      channelUrlPattern.test(trimmedInput) ||
+      channelIdPattern.test(trimmedInput) ||
+      handlePattern.test(trimmedInput)
+    ) {
       return "";
     }
     return "🚫 Veuillez entrer une URL de chaîne valide ou un handle (ex. @TMZ).";
@@ -101,23 +116,19 @@ function HomeContent() {
       return;
     }
     setInputError("");
-    if (!channelInput.trim()) {
-      setInputError("🚫 Veuillez entrer une URL ou un handle valide.");
-      return;
-    }
     console.log("Vérification chaîne :", channelInput);
     refetch();
     setShowResults(true);
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setChannelInput(e.target.value);
     setShowResults(false);
     setInputError("");
   };
 
   const handleCopyTags = () => {
-    if (data && data.tags) {
+    if (data?.tags) {
       navigator.clipboard.writeText(data.tags.join(", "));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -158,7 +169,7 @@ function HomeContent() {
           </motion.div>
         </div>
 
-        {inputError && <p className="error-message text-center">{inputError}</p>}
+        {inputError && <p className="error-message text-center text-[#F87171] mb-4">{inputError}</p>}
 
         {isLoading && (
           <motion.div
@@ -166,8 +177,8 @@ function HomeContent() {
             animate={{ opacity: 1 }}
             className="mb-6 max-w-sm mx-auto"
           >
-            <div className="progress-bar">
-              <div className="progress-bar-inner" style={{ width: `${progress}%` }} />
+            <div className="progress-bar w-full bg-gray-700 h-2 rounded overflow-hidden">
+              <div className="progress-bar-inner bg-[#34D399] h-full transition-all duration-200" style={{ width: `${progress}%` }} />
             </div>
             <p className="text-center mt-2 text-[#34D399] text-base">
               Analyse en cours... {progress}% ✨
@@ -182,11 +193,11 @@ function HomeContent() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.5 }}
-              className="results-frame max-w-3xl mx-auto"
+              className="results-frame max-w-3xl mx-auto space-y-4"
             >
               {error ? (
                 <div className="text-center p-4">
-                  <p className="text-base text-[#F87171]">{error.message}</p>
+                  <p className="text-base text-[#F87171]">{(error as Error).message}</p>
                   <motion.div whileHover={{ scale: 1.05 }}>
                     <Button
                       onClick={handleCheck}
@@ -207,303 +218,128 @@ function HomeContent() {
                         alt="Bannière de la chaîne"
                         width={800}
                         height={160}
-                        className="banner-image"
+                        className="banner-image rounded-lg object-cover"
                       />
                     </div>
                   )}
                   {data.thumbnails && (
-                    <div className="profile-pic-container">
+                    <div className="profile-pic-container flex justify-center -mt-10 relative z-10">
                       <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring" }}>
                         <Image
                           src={data.thumbnails}
                           alt="Photo de profil"
                           width={80}
                           height={80}
-                          className="profile-pic"
+                          className="profile-pic rounded-full border-2 border-white object-cover"
                         />
                       </motion.div>
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="monetization-status"
-                    >
+                  <div className="space-y-3 bg-[#202020] p-6 rounded-xl shadow-lg">
+                    {/* Monétisation */}
+                    <div className="monetization-status flex items-center gap-2">
                       <span className="emoji">💸</span>
                       <span className="label">Statut de monétisation</span>
                       <span className="emoji">💵</span> :{" "}
-                      <span
-                        className={data.monetization_status.is_likely_monetized ? "value" : "disabled"}
-                      >
-                        {data.monetization_status.is_likely_monetized ? "ACTIVÉ" : "DÉSACTIVÉ"}
+                      <span className={data.monetization_status?.is_likely_monetized ? "value text-green-400 font-bold" : "disabled text-red-400 font-bold"}>
+                        {data.monetization_status?.is_likely_monetized ? "ACTIVÉ" : "DÉSACTIVÉ"}
                       </span>
                       <span className="emoji">💰</span>
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{
-                        duration: 0.3,
-                        delay: data.google_analytics && data.google_analytics.is_connected ? 1.8 : 1.7,
-                      }}
-                      className="section-item"
-                    >
-                      <span className="emoji">🕵️</span>
-                      <span className="label">Statut de la publicité de la chaîne :</span>
-                      <span
-                        className={data.monetization_status.is_likely_monetized ? "value" : "disabled"}
-                      >
-                        {data.monetization_status.is_likely_monetized
-                          ? "🏆 Les publicités sont actives sur cette chaîne."
-                          : "Les publicités ne sont pas actives sur cette chaîne."}
-                      </span>
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.1 }}
-                      className="section-item"
-                    >
+                    </div>
+
+                    {/* Originalité */}
+                    <div className="section-item flex items-center gap-2">
                       <span className="emoji">🎨</span>
                       <span className="label">Originalité de la chaîne :</span>
-                      <span className={data.originality_status.is_original ? "value" : "disabled"}>
-                        {data.originality_status.display}
+                      <span className={data.originality_status?.is_original ? "value text-green-400" : "disabled text-yellow-400"}>
+                        {data.originality_status?.display}
                       </span>
-                    </motion.div>
+                    </div>
 
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.2 }}
-                      className="section-item"
-                    >
+                    {/* Niche */}
+                    <div className="section-item flex items-center gap-2">
                       <span className="emoji">🎯</span>
                       <span className="label">Catégorie/Niche :</span>
-                      <span className={data.niche_info.main_niche === "inconnue" ? "warning" : "value"}>
-                        {data.niche_info.description}
-                      </span>
-                    </motion.div>
+                      <span className="value">{data.niche_info?.description}</span>
+                    </div>
 
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.3 }}
-                      className="section-item"
-                    >
+                    {/* Localisation */}
+                    <div className="section-item flex items-center gap-2">
                       <span className="emoji">🌍</span>
                       <span className="label">Localisation :</span>
                       <span className="value">
-                        {data.location.country_name} ({data.location.country_code})
+                        {data.location?.country_name} ({data.location?.country_code})
                       </span>
-                    </motion.div>
+                    </div>
 
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.4 }}
-                      className="section-item"
-                    >
+                    {/* Téléphone */}
+                    <div className="section-item flex items-center gap-2">
                       <span className="emoji">☎️</span>
                       <span className="label">Indicatif téléphonique :</span>
-                      <span className="secondary-value">{data.location.phone_code}</span>
-                    </motion.div>
+                      <span className="secondary-value text-gray-300">{data.location?.phone_code}</span>
+                    </div>
 
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.5 }}
-                      className="section-item"
-                    >
+                    {/* Date de création */}
+                    <div className="section-item flex items-center gap-2">
                       <span className="emoji">📅</span>
                       <span className="label">Date de création :</span>
                       <span className="value">
-                        {data.creation_date} ({data.time_elapsed.description})
+                        {data.creation_date} ({data.time_elapsed?.description})
                       </span>
-                    </motion.div>
+                    </div>
 
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.6 }}
-                      className="section-item"
-                    >
-                      <span className="emoji">🏷️</span>
-                      <span className="label">Tags/Mots-clés :</span>
-                      <span className={data.tags[0].startsWith("⚠️") ? "warning" : "value"}>
-                        {data.tags.join(", ")}
-                        <button onClick={handleCopyTags} className="copy-button">
-                          {copied ? "✔ Copié !" : "📋 Copier"}
-                        </button>
-                      </span>
-                    </motion.div>
+                    {/* Tags */}
+                    {data.tags && data.tags.length > 0 && (
+                      <div className="section-item flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="emoji">🏷️</span>
+                          <span className="label">Tags/Mots-clés :</span>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between bg-[#181818] p-3 rounded-md gap-2">
+                          <span className="text-sm text-gray-300 break-all">
+                            {data.tags.join(", ")}
+                          </span>
+                          <button 
+                            onClick={handleCopyTags} 
+                            className="copy-button bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-xs transition"
+                          >
+                            {copied ? "✔ Copié !" : "📋 Copier"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.7 }}
-                      className="section-item"
-                    >
+                    {/* Abonnés */}
+                    <div className="section-item flex items-center gap-2">
                       <span className="emoji">👥</span>
                       <span className="label">Abonnés :</span>
                       <span className="value">
-                        {data.statistics.subscribers.toLocaleString()} ({data.statistics.badge})
+                        {data.statistics?.subscribers?.toLocaleString()} ({data.statistics?.badge})
                       </span>
-                    </motion.div>
+                    </div>
 
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.8 }}
-                      className="section-item"
-                    >
-                      <span className="emoji">📈</span>
-                      <span className="label">Croissance des abonnés :</span>
-                      <span className="value">{data.growth_info.description}</span>
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.9 }}
-                      className="section-item"
-                    >
-                      <span className="emoji">❤️</span>
-                      <span className="label">Engagement global :</span>
-                      <span className="value">{data.engagement_info.description}</span>
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 1.0 }}
-                      className="section-item"
-                    >
+                    {/* Vidéos et Vues */}
+                    <div className="section-item flex items-center gap-2">
                       <span className="emoji">🎥</span>
                       <span className="label">Nombre de vidéos :</span>
-                      <span className="value">{data.statistics.videos.toLocaleString()} vidéos</span>
-                    </motion.div>
+                      <span className="value">{data.statistics?.videos?.toLocaleString()} vidéos</span>
+                    </div>
 
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 1.1 }}
-                      className="section-item"
-                    >
+                    <div className="section-item flex items-center gap-2">
                       <span className="emoji">👀</span>
                       <span className="label">Nombre total de vues :</span>
-                      <span className="value">{data.statistics.views.toLocaleString()}</span>
-                    </motion.div>
+                      <span className="value">{data.statistics?.views?.toLocaleString()}</span>
+                    </div>
 
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 1.2 }}
-                      className="section-item"
-                    >
-                      <span className="emoji">📊</span>
-                      <span className="label">Performance récente :</span>
-                      <span className="value">{data.recent_performance.description}</span>
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 1.3 }}
-                      className="section-item"
-                    >
-                      <span className="emoji">🎬</span>
-                      <span className="label">Fréquence de téléchargement :</span>
-                      <div className="sub-list">
-                        <span>➡️ {data.frequency.videos_per_year} vidéos par an</span>
-                        <span>➡️ {data.frequency.videos_per_month} vidéos par mois</span>
-                        <span>➡️ {data.frequency.videos_per_week} vidéos par semaine</span>
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 1.4 }}
-                      className="section-item"
-                    >
-                      <span className="emoji">📐</span>
-                      <span className="label">Moyennes :</span>
-                      <div className="sub-list">
-                        <span>
-                          ➡️ Vues par an : {data.averages.views_per_year.toLocaleString()}
-                          {data.time_elapsed.years < 1 && " (Moins d'un an)"}
-                        </span>
-                        <span>
-                          ➡️ Vues par mois : {data.averages.views_per_month.toLocaleString()}
-                        </span>
-                        <span>
-                          ➡️ Vues par jour : {data.averages.views_per_day.toLocaleString()}
-                        </span>
-                        <span>
-                          ➡️ Vues par vidéo : {data.averages.views_per_video.toLocaleString()}
-                        </span>
-                      </div>
-                    </motion.div>
-
-                    {data.revenue_estimation && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 1.5 }}
-                        className="section-item"
-                      >
-                        <span className="emoji">💰</span>
-                        <span className="label">Revenus estimés :</span>
-                        <span className="value">{data.revenue_estimation.description}</span>
-                      </motion.div>
-                    )}
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 1.6 }}
-                      className="section-item"
-                    >
-                      <span className="emoji">👪</span>
-                      <span className="label">Destinée aux enfants ? :</span>
-                      <span className="value">{data.child_directed_status.display}</span>
-                    </motion.div>
-
-                    {data.google_analytics && data.google_analytics.is_connected && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 1.7 }}
-                        className="section-item"
-                      >
-                        <span className="emoji">📈</span>
-                        <span className="label">Suivi Google Analytics :</span>
-                        <span className="value">
-                          Un compte Google Analytics est-il connecté à cette chaîne ? Oui ! Cette
-                          chaîne suit et mesure le trafic avec Google Analytics :{" "}
-                          {data.google_analytics.tracking_id}
-                        </span>
-                      </motion.div>
-                    )}
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{
-                        duration: 0.3,
-                        delay: data.google_analytics && data.google_analytics.is_connected ? 1.9 : 1.8,
-                      }}
-                      className="section-item"
-                    >
+                    {/* URL de la chaîne */}
+                    <div className="section-item flex items-center gap-2 pt-2 border-t border-gray-700">
                       <span className="emoji">🔗</span>
                       <span className="label">URL de la chaîne :</span>
-                      <a href={data.channel_url} target="_blank" className="value">
+                      <a href={data.channel_url} target="_blank" rel="noreferrer" className="value text-blue-400 underline">
                         {data.channel_url}
                       </a>
-                    </motion.div>
+                    </div>
                   </div>
                 </>
               )}
