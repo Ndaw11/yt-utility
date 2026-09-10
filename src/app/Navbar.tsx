@@ -8,6 +8,7 @@ const navItems = [
   { name: "Accueil", path: "/" },
   { name: "Tags Vidéo", path: "/video-tags" },
   { name: "Transcription", path: "/transcription" }, // Nouvel onglet
+  { name: "Text-to-Speech", path: "/text-to-speech" }, 
 ];
 
 export default function Navbar() {

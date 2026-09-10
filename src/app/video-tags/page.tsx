@@ -37,7 +37,7 @@ function VideoTagsContent() {
     queryKey: ["videoTags", videoInput],
     queryFn: async () => {
       if (!videoInput.trim()) return null;
-      const url = `http://localhost:8000/api/video-tags/${encodeURIComponent(videoInput)}`;
+      const url = `http://localhost:8080/api/video-tags/${encodeURIComponent(videoInput)}`;
       console.log("Envoi de la requête vers :", url);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);

@@ -37,7 +37,7 @@ function HomeContent() {
     queryKey: ["channel", channelInput],
     queryFn: async () => {
       if (!channelInput.trim()) return null;
-      const url = `http://localhost:8000/api/channel-info/${encodeURIComponent(channelInput)}`;
+      const url = `http://localhost:8080/api/channel-info/${encodeURIComponent(channelInput)}`;
       console.log("Envoi de la requête vers :", url);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);

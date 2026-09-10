@@ -37,7 +37,7 @@ function VideoTranscriptContent() {
     queryKey: ["videoTranscript", videoInput],
     queryFn: async () => {
       if (!videoInput.trim()) return null;
-      const url = `http://localhost:8000/api/video-transcript/${encodeURIComponent(videoInput)}`;
+      const url = `http://localhost:8080/api/video-transcript/${encodeURIComponent(videoInput)}`;
       console.log("Envoi de la requête vers :", url);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -79,14 +79,14 @@ function VideoTranscriptContent() {
     }
   }, [isLoading]);
 
-  const validateInput = (input: string) => {
-    const videoUrlPattern = /^(https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[0-9A-Za-z_-]{11})/;
-    const videoIdPattern = /^[0-9A-Za-z_-]{11}$/;
-    if (videoUrlPattern.test(input) || videoIdPattern.test(input)) {
-      return "";
-    }
-    return "🚫 Veuillez entrer une URL de vidéo YouTube valide ou un ID (ex. https://www.youtube.com/watch?v=VIDEO_ID).";
-  };
+const validateInput = (input: string) => {
+  const videoUrlPattern = /^(https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[0-9A-Za-z_-]{11})/;
+  const videoIdPattern = /^[0-9A-Za-z_-]{11}$/;
+  if (videoUrlPattern.test(input) || videoIdPattern.test(input)) {
+    return "";
+  }
+  return "🚫 Veuillez entrer une URL de vidéo YouTube valide ou un ID (ex. https://www.youtube.com/watch?v=VIDEO_ID ou https://www.youtube.com/shorts/VIDEO_ID).";
+};
 
   const handleCheck = () => {
     const validationError = validateInput(videoInput);
