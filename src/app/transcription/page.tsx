@@ -46,7 +46,7 @@ function VideoTranscriptContent() {
         clearTimeout(timeoutId);
         console.log("Statut HTTP :", res.status);
         if (!res.ok) {
-          const errorDetail = await res.json();
+          const errorDetail = await res.json().catch(() => ({}));
           if (res.status === 404) {
             throw new Error("🚫 Aucune transcription disponible. Vérifiez l'URL ou l'ID.");
           } else if (res.status === 503) {
@@ -59,7 +59,7 @@ function VideoTranscriptContent() {
         const json = await res.json();
         console.log("Réponse JSON :", json);
         return json;
-      } catch (err) {
+      } catch (err: any) {
         clearTimeout(timeoutId);
         throw err.name === "AbortError" ? new Error("⏳ Requête trop longue, essayez encore !") : err;
       }
@@ -79,14 +79,14 @@ function VideoTranscriptContent() {
     }
   }, [isLoading]);
 
-const validateInput = (input: string) => {
-  const videoUrlPattern = /^(https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[0-9A-Za-z_-]{11})/;
-  const videoIdPattern = /^[0-9A-Za-z_-]{11}$/;
-  if (videoUrlPattern.test(input) || videoIdPattern.test(input)) {
-    return "";
-  }
-  return "🚫 Veuillez entrer une URL de vidéo YouTube valide ou un ID (ex. https://www.youtube.com/watch?v=VIDEO_ID ou https://www.youtube.com/shorts/VIDEO_ID).";
-};
+  const validateInput = (input: string) => {
+    const videoUrlPattern = /^(https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[0-9A-Za-z_-]{11})/;
+    const videoIdPattern = /^[0-9A-Za-z_-]{11}$/;
+    if (videoUrlPattern.test(input) || videoIdPattern.test(input)) {
+      return "";
+    }
+    return "🚫 Veuillez entrer une URL de vidéo YouTube valide ou un ID (ex. https://www.youtube.com/watch?v=VIDEO_ID ou https://www.youtube.com/shorts/VIDEO_ID).";
+  };
 
   const handleCheck = () => {
     const validationError = validateInput(videoInput);
@@ -141,60 +141,67 @@ const validateInput = (input: string) => {
           </Button>
         </div>
 
-        {inputError && <p className="error-message text-center">{inputError}</p>}
+        {inputError && <p className="error-message text-center text-red-400 mb-4">{inputError}</p>}
 
         {isLoading && (
           <div className="mb-6 max-w-sm mx-auto">
-            <div className="progress-bar">
-              <div className="progress-bar-inner" style={{ width: `${progress}%` }} />
+            <div className="progress-bar w-full bg-gray-700 h-2 rounded overflow-hidden">
+              <div className="progress-bar-inner bg-[#34D399] h-full transition-all duration-200" style={{ width: `${progress}%` }} />
             </div>
             <p className="text-center mt-2 text-[#34D399] text-base">
               Analyse en cours... {progress}% ✨
             </p>
           </div>
         )}
-<br />
-<br />
-<AnimatePresence>
-  {data && !error && !inputError && (
-    <div className="results-frame max-w-3xl mx-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold">
-          Transcription :{" "}
-          <a 
-            href={data.video_url} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-[#34D399] hover:underline"
-          >
-            🔗
-          </a>
-        </h2>
-        <Button
-          onClick={handleCopyTranscript}
-          disabled={!data.transcript}
-          className="copy-button"
-        >
-          {copied ? "✔ Copié !" : "📋 Copier la transcription"}
-        </Button>
-      </div>
-      <div className="bg-[#333333] p-4 rounded-md">
-        <p className="text-white whitespace-pre-wrap">{data.transcript}</p>
-      </div>
-    </div>
-  )}
-</AnimatePresence>
+        <br />
+        <br />
+        <AnimatePresence>
+          {data && !error && !inputError && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="results-frame max-w-3xl mx-auto bg-[#202020] p-6 rounded-xl shadow-lg"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-semibold flex items-center gap-2">
+                  <span>Transcription</span>
+                  {data.video_url && (
+                    <a 
+                      href={data.video_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-[#34D399] hover:underline"
+                    >
+                      🔗
+                    </a>
+                  )}
+                </h2>
+                <Button
+                  onClick={handleCopyTranscript}
+                  disabled={!data.transcript}
+                  className="copy-button bg-gray-700 hover:bg-gray-600 text-white text-xs px-3 py-1.5 rounded"
+                >
+                  {copied ? "✔ Copié !" : "📋 Copier la transcription"}
+                </Button>
+              </div>
+              <div className="bg-[#333333] p-4 rounded-md max-h-96 overflow-y-auto">
+                <p className="text-white whitespace-pre-wrap">{data.transcript}</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {error && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center p-4"
+            className="text-center p-4 max-w-3xl mx-auto bg-[#202020] rounded-xl shadow-lg mt-4"
           >
-            <p className="text-base text-[#F87171]">{error.message}</p>
+            <p className="text-base text-[#F87171]">{(error as Error).message}</p>
             <Button
               onClick={handleCheck}
-              className="mt-3 bg-[#F87171] hover:bg-[#EF4444] rounded-md"
+              className="mt-3 bg-[#F87171] hover:bg-[#EF4444] rounded-md text-white"
             >
               Réessayer 🔄
             </Button>
