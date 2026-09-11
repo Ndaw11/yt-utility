@@ -28,11 +28,11 @@ export default function VideoTagsPage() {
 
 function VideoTagsContent() {
   const [videoInput, setVideoInput] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const [inputError, setInputError] = useState("");
   const [progress, setProgress] = useState(0);
 
+  // Requête pour les tags de la vidéo
   const { data, refetch, isLoading, error } = useQuery({
     queryKey: ["videoTags", videoInput],
     queryFn: async () => {
@@ -46,11 +46,11 @@ function VideoTagsContent() {
         clearTimeout(timeoutId);
         console.log("Statut HTTP :", res.status);
         if (!res.ok) {
-          const errorDetail = await res.json();
+          const errorDetail = await res.json().catch(() => ({}));
           if (res.status === 404) {
-            throw new Error("🚫 Vidéo non trouvée. Vérifiez l'URL ou l'ID.");
+            throw new Error("🚫 Aucun tag disponible. Vérifiez l'URL ou l'ID.");
           } else if (res.status === 503) {
-            throw new Error("⏳ Erreur : Veuillez réessayer plus tard.");
+            throw new Error("⏳ Erreur : Quota API dépassé, réessayez plus tard.");
           } else if (res.status === 500) {
             throw new Error("⚠️ Erreur serveur.");
           }
@@ -59,7 +59,7 @@ function VideoTagsContent() {
         const json = await res.json();
         console.log("Réponse JSON :", json);
         return json;
-      } catch (err) {
+      } catch (err: any) {
         clearTimeout(timeoutId);
         throw err.name === "AbortError" ? new Error("⏳ Requête trop longue, essayez encore !") : err;
       }
@@ -80,12 +80,12 @@ function VideoTagsContent() {
   }, [isLoading]);
 
   const validateInput = (input: string) => {
-    const videoUrlPattern = /^(https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[0-9A-Za-z_-]{11})/;
+    const videoUrlPattern = /^(https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[0-9A-Za-z_-]{11})/;
     const videoIdPattern = /^[0-9A-Za-z_-]{11}$/;
     if (videoUrlPattern.test(input) || videoIdPattern.test(input)) {
       return "";
     }
-    return "🚫 Veuillez entrer une URL de vidéo YouTube valide ou un ID (ex. https://www.youtube.com/watch?v=VIDEO_ID).";
+    return "🚫 Veuillez entrer une URL de vidéo YouTube valide ou un ID (ex. https://www.youtube.com/watch?v=VIDEO_ID ou https://www.youtube.com/shorts/VIDEO_ID).";
   };
 
   const handleCheck = () => {
@@ -99,30 +99,13 @@ function VideoTagsContent() {
       setInputError("🚫 Veuillez entrer une URL ou un ID valide.");
       return;
     }
-    console.log("Vérification vidéo :", videoInput);
+    console.log("Vérification vidéo tags :", videoInput);
     refetch();
-    setSelectedTags([]);
   };
 
-  const handleTagClick = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
-  };
-
-  const handleSelectAll = () => {
+  const handleCopyTags = () => {
     if (data && data.tags) {
-      setSelectedTags(data.tags);
-    }
-  };
-
-  const handleDeselectAll = () => {
-    setSelectedTags([]);
-  };
-
-  const handleCopy = () => {
-    if (selectedTags.length > 0) {
-      navigator.clipboard.writeText(selectedTags.join(", "));
+      navigator.clipboard.writeText(data.tags.join(", "));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -132,9 +115,9 @@ function VideoTagsContent() {
     <div className="min-h-screen bg-[#181818] text-white p-6">
       <div className="container mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2">🎥 Extracteur de Tags Vidéo</h1>
+          <h1 className="text-4xl font-bold mb-2">🏷️ Tags de Vidéo YouTube</h1>
           <p className="text-gray-400 text-base">
-            Entrez l'URL d'une vidéo YouTube pour découvrir ses tags ! 🚀
+            Extrayez les mots-clés et tags de n'importe quelle vidéo YouTube ! 🚀
           </p>
         </div>
 
@@ -154,68 +137,68 @@ function VideoTagsContent() {
             disabled={isLoading}
             className="action-button"
           >
-            {isLoading ? "🔄 Analyse..." : "Explorer 🌍"}
+            {isLoading ? "🔄 Analyse..." : "Obtenir les tags 🌍"}
           </Button>
         </div>
 
-        {inputError && <p className="error-message text-center">{inputError}</p>}
+        {inputError && <p className="error-message text-center text-red-400 mb-4">{inputError}</p>}
 
         {isLoading && (
           <div className="mb-6 max-w-sm mx-auto">
-            <div className="progress-bar">
-              <div className="progress-bar-inner" style={{ width: `${progress}%` }} />
+            <div className="progress-bar w-full bg-gray-700 h-2 rounded overflow-hidden">
+              <div className="progress-bar-inner bg-[#34D399] h-full transition-all duration-200" style={{ width: `${progress}%` }} />
             </div>
             <p className="text-center mt-2 text-[#34D399] text-base">
               Analyse en cours... {progress}% ✨
             </p>
           </div>
         )}
-
+        <br />
+        <br />
         <AnimatePresence>
           {data && !error && !inputError && (
-            <div className="results-frame max-w-3xl mx-auto">
-              <h2 className="text-2xl font-semibold mb-4">
-                {data.title}{" "}
-                <a href={data.video_url} target="_blank" rel="noopener noreferrer" className="text-[#34D399] hover:underline">
-                  🔗
-                </a>
-              </h2>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="results-frame max-w-3xl mx-auto bg-[#202020] p-6 rounded-xl shadow-lg"
+            >
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">Tags :</h3>
-                <div className="space-x-2">
-                  <Button onClick={handleSelectAll} className="copy-button">
-                    Tout sélectionner
-                  </Button>
-                  <Button onClick={handleDeselectAll} className="copy-button">
-                    Désélectionner tout
-                  </Button>
-                  <Button
-                    onClick={handleCopy}
-                    disabled={selectedTags.length === 0}
-                    className="copy-button"
-                  >
-                    {copied ? "✔ Copié !" : "📋 Copier"}
-                  </Button>
-                </div>
+                <h2 className="text-2xl font-semibold flex items-center gap-2">
+                  <span>Tags de la Vidéo</span>
+                  {data.video_url && (
+                    <a 
+                      href={data.video_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-[#34D399] hover:underline"
+                    >
+                      🔗
+                    </a>
+                  )}
+                </h2>
+                <Button
+                  onClick={handleCopyTags}
+                  disabled={!data.tags || data.tags.length === 0}
+                  className="copy-button bg-gray-700 hover:bg-gray-600 text-white text-xs px-3 py-1.5 rounded"
+                >
+                  {copied ? "✔ Copié !" : "📋 Copier les tags"}
+                </Button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {data.tags.map((tag: string) => (
-                  <motion.div
-                    key={tag}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleTagClick(tag)}
-                    className={`px-3 py-1 rounded-full cursor-pointer transition-colors ${
-                      selectedTags.includes(tag)
-                        ? "bg-[#34D399] text-[#1F2937]"
-                        : "bg-[#333333] text-white hover:bg-[#444444]"
-                    }`}
-                  >
-                    {tag}
-                  </motion.div>
-                ))}
+              <div className="bg-[#333333] p-4 rounded-md">
+                {data.tags && data.tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {data.tags.map((tag: string, index: number) => (
+                      <span key={index} className="bg-gray-700 text-gray-200 px-2.5 py-1 rounded-md text-sm">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-400">Aucun tag trouvé pour cette vidéo.</p>
+                )}
               </div>
-            </div>
+            </motion.div>
           )}
         </AnimatePresence>
 
@@ -223,12 +206,12 @@ function VideoTagsContent() {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center p-4"
+            className="text-center p-4 max-w-3xl mx-auto bg-[#202020] rounded-xl shadow-lg mt-4"
           >
-            <p className="text-base text-[#F87171]">{error.message}</p>
+            <p className="text-base text-[#F87171]">{(error as Error).message}</p>
             <Button
               onClick={handleCheck}
-              className="mt-3 bg-[#F87171] hover:bg-[#EF4444] rounded-md"
+              className="mt-3 bg-[#F87171] hover:bg-[#EF4444] rounded-md text-white"
             >
               Réessayer 🔄
             </Button>
